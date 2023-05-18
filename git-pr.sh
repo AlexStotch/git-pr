@@ -83,6 +83,14 @@ pr_shortcut_card() {
       echo "$l_story"
 }
 
+pr_card_url() {
+  local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
+  local source_branch; source_branch=$(git_current_branch)
+  local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
+
+  return "$card_url"
+}
+
 pr_shortcut_card_link() {
   local card_url; card_url=$(pr_shortcut_card | jq -r .app_url)
 
@@ -101,7 +109,7 @@ pr_requested_reviewers_pending() {
   local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
   local source_branch; source_branch=$(git_current_branch)
   local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
-  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g'  | sed 's/repos\.com/repos/g')
+  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g' | sed 's/repos\.com/repos/g')
 
   local requested_reviewers; requested_reviewers=$(curl -s -L \
     -H "Accept: application/vnd.github+json" \
@@ -121,7 +129,7 @@ pr_requested_reviewers() {
   local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
   local source_branch; source_branch=$(git_current_branch)
   local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
-  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g'  | sed 's/repos\.com/repos/g')
+  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g' | sed 's/repos\.com/repos/g')
 
   local reviews; reviews=$(curl -s -L \
     -H "Accept: application/vnd.github+json" \
@@ -189,19 +197,16 @@ pr_description() {
 $description
 
 EOF
+}
 
-#https://app.shortcut.com/studocu/story/47141/showing-organic-posts-in-single-question-page
-# https://github.com/StuDocu/studocu/tree/feature/sc-76978-create-chatmessageattachable-table
-# branch= test/tt
-#google-chrome "https://github.com/StuDocu/studocu/compare/master...test/tt"
-#google-chrome "https://github.com/StuDocu/studocu/compare/master...$source_branch"
+pr_open() {
+xdg-open "$(pr_card_url)"
 }
 
 # Variables
 ################################################################################
 SHORTCUT_TOKEN=${SHORTCUT_TOKEN:-$(git config --get pr.shortcut-token || true)}
 GITHUB_TOKEN=${GITHUB_TOKEN:-$(git config --get pr.github-token || true)}
-
 ################################################################################
 # Run
 
@@ -212,5 +217,6 @@ git rev-parse > /dev/null 2>&1  || exit_error "$ERR_GIT_REPO" "Not a git reposit
 # Run
 case $1 in
     -d|description) pr_description "${@:2}";;
+    -o|open) pr_open "${@:2}";;
     -s|status) pr_status "${@:2}";;
 esac
