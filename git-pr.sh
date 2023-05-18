@@ -10,9 +10,20 @@ git_current_branch() {
         git rev-parse --abbrev-ref HEAD
 }
 
+git_base_branch() {
+  local base_branch; base_branch=$(git show-branch |
+   grep '*' |
+   grep -v "$(git rev-parse --abbrev-ref HEAD)" |
+   head -n1 |
+   sed 's/.*\[\(.*\)\].*/\1/' |
+   sed 's/[\^~].*//')
+
+  echo "$base_branch"
+}
+
 git_commits() {
     local source_branch=${1:-$(git_current_branch)}
-    local target_branch; target_branch="master"
+    local target_branch; target_branch=$(git_base_branch)
 
     git log --oneline --reverse --no-decorate "${target_branch}..${source_branch}"
 }
@@ -60,13 +71,13 @@ pr_shortcut_card_link() {
 
   local id; id=$(echo chore/sc-77765-flaky-php-test-chatpopularcoursesquerytest | grep -E -o "[0-9]+")
 
-  local l_story; l_story="$(curl -X GET \
+  local l_story; l_story=$(curl -X GET \
     -H "Content-Type: application/json" \
     -H "Shortcut-Token: $auth_token" \
     -d '{ "page_size": 1, "query": "id:'"$id"'" }' \
     -L "https://api.app.shortcut.com/api/v3/search/stories" \
       2>/dev/null \
-    | jq -c .data[0] | jq .app_url)"
+    | jq -c .data[0] | jq -r .app_url)
 
    echo "### [Card]($l_story)"
 }
@@ -91,6 +102,12 @@ pr_open() {
 $description
 
 EOF
+
+#https://app.shortcut.com/studocu/story/47141/showing-organic-posts-in-single-question-page
+# https://github.com/StuDocu/studocu/tree/feature/sc-76978-create-chatmessageattachable-table
+# branch= test/tt
+#google-chrome "https://github.com/StuDocu/studocu/compare/master...test/tt"
+#google-chrome "https://github.com/StuDocu/studocu/compare/master...$source_branch"
 }
 
 # Variables
