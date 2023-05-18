@@ -66,24 +66,30 @@ EOF
     fi
 }
 
-pr_shortcut_card_link() {
-  local auth_token; auth_token=$(echo -n "${SHORTCUT_TOKEN}")
+pr_shortcut_card() {
+    local auth_token; auth_token=$(echo -n "${SHORTCUT_TOKEN}")
 
-  local id; id=$(echo chore/sc-77765-flaky-php-test-chatpopularcoursesquerytest | grep -E -o "[0-9]+")
+    local source_branch; source_branch=$(git_current_branch)
+    local id; id=$(echo "$source_branch" | grep -E -o "[0-9]+")
 
-  local l_story; l_story=$(curl -X GET \
-    -H "Content-Type: application/json" \
-    -H "Shortcut-Token: $auth_token" \
-    -d '{ "page_size": 1, "query": "id:'"$id"'" }' \
-    -L "https://api.app.shortcut.com/api/v3/search/stories" \
-      2>/dev/null \
-    | jq -c .data[0] | jq -r .app_url)
+    local l_story; l_story=$(curl -X GET \
+      -H "Content-Type: application/json" \
+      -H "Shortcut-Token: $auth_token" \
+      -d '{ "page_size": 1, "query": "id:'"$id"'" }' \
+      -L "https://api.app.shortcut.com/api/v3/search/stories" \
+        2>/dev/null \
+      | jq -c .data[0])
 
-   echo "### [Card]($l_story)"
+      echo "$l_story"
 }
 
+pr_shortcut_card_link() {
+  local card_url; card_url=$(pr_shortcut_card | jq -r .app_url)
 
-pr_description() {
+   echo "### [Card]($card_url)"
+}
+
+pr_format_description() {
     local source_branch=${1:-$(git_current_branch)}
     local title='# Description'
     local card_url; card_url=$(pr_shortcut_card_link "$source_branch")
@@ -91,11 +97,27 @@ pr_description() {
     pr_print_description "$title" "$card_url" "$(pr_commit_list "$source_branch")"
 }
 
-pr_open() {
+pr_status() {
+  local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
+  local source_branch; source_branch=$(git_current_branch)
+  local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
+  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g'  | sed 's/repos\.com/repos/g')
+
+  local pr; pr=$(curl -L \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer $auth_token"\
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "$api_card_url")
+
+    #TODO add error handling if PR doesn't exist
+    echo $pr
+}
+
+pr_description() {
     local source_branch=${1:-$(git_current_branch)}
 
     local description;
-        description=$(pr_description "$source_branch")
+        description=$(pr_format_description "$source_branch")
         cat <<EOF
 
 --------------------------------------------------------------------------------
@@ -113,6 +135,7 @@ EOF
 # Variables
 ################################################################################
 SHORTCUT_TOKEN=${SHORTCUT_TOKEN:-$(git config --get pr.shortcut-token || true)}
+GITHUB_TOKEN=${GITHUB_TOKEN:-$(git config --get pr.github-token || true)}
 
 ################################################################################
 # Run
@@ -123,5 +146,6 @@ git rev-parse > /dev/null 2>&1  || exit_error "$ERR_GIT_REPO" "Not a git reposit
 
 # Run
 case $1 in
-    -d|description) pr_open "${@:2}";;
+    -d|description) pr_description "${@:2}";;
+    -s|status) pr_status "${@:2}";;
 esac
