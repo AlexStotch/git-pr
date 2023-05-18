@@ -1,9 +1,13 @@
 # git-pr
 
+Prepares a merge request description, with link to Shortcut card and current branch commit list.
+
 ## Commands
 
 ```
-git mr -d|description  
+git mr -d|description
+git mr -o|open
+git mr -s|status
 ```
 
 ## Installation
