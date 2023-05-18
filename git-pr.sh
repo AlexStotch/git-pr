@@ -12,8 +12,9 @@ git_current_branch() {
 
 git_commits() {
     local source_branch=${1:-$(git_current_branch)}
+    local target_branch; target_branch="master"
 
-    git log --oneline --reverse --no-decorate "${source_branch}"
+    git log --oneline --reverse --no-decorate "${target_branch}..${source_branch}"
 }
 
 markdown_list() {
@@ -55,9 +56,9 @@ EOF
 }
 
 pr_shortcut_card_link() {
-  local auth_token; auth_token=$(echo -n "${SHORTCUT_TOKEN}:${SHORTCUT_TOKEN}" | base64 -w 0)
+  local auth_token; auth_token=$(echo -n "${SHORTCUT_TOKEN}")
 
-  local id; id=$(grep -Eo 'sc-[[:digit:]]+' "$source_branch" | grep -Eo [[:digit:]]+)
+  local id; id=$(echo chore/sc-77765-flaky-php-test-chatpopularcoursesquerytest | grep -E -o "[0-9]+")
 
   local l_story; l_story="$(curl -X GET \
     -H "Content-Type: application/json" \
