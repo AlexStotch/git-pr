@@ -97,20 +97,85 @@ pr_format_description() {
     pr_print_description "$title" "$card_url" "$(pr_commit_list "$source_branch")"
 }
 
-pr_status() {
+pr_requested_reviewers_pending() {
   local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
   local source_branch; source_branch=$(git_current_branch)
   local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
   local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g'  | sed 's/repos\.com/repos/g')
 
-  local pr; pr=$(curl -L \
+  local requested_reviewers; requested_reviewers=$(curl -s -L \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: Bearer $auth_token"\
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    "$api_card_url")
+    "$api_card_url/requested_reviewers")
 
-    #TODO add error handling if PR doesn't exist
-    echo $pr
+    if [[ -z $requested_reviewers ]]; then
+      echo "No PR created"
+      exist 1
+    fi
+
+    echo "$requested_reviewers" | jq -r '.users[].login, .teams[].name'
+}
+
+pr_requested_reviewers() {
+  local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
+  local source_branch; source_branch=$(git_current_branch)
+  local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
+  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g'  | sed 's/repos\.com/repos/g')
+
+  local reviews; reviews=$(curl -s -L \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer $auth_token"\
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "$api_card_url/reviews")
+
+    if [[ -z $reviews ]]; then
+      echo "No PR created"
+      exist 1
+    fi
+
+    echo "$reviews"
+}
+
+pr_requested_reviewers_commented() {
+    local reviews=$1
+    echo "$reviews" | jq -r '.[] | select(.state == "COMMENTED") | .user.login' | sort -u
+}
+
+pr_requested_reviewers_approved() {
+    local reviews=$1
+    echo "$reviews" | jq -r '.[] | select(.state == "APPROVED") | .user.login' | sort -u
+}
+
+pr_status() {
+  local requested_reviewers; requested_reviewers=$(pr_requested_reviewers)
+  local requested_reviewers_pending; requested_reviewers_pending=$(pr_requested_reviewers_pending)
+  local requested_reviewers_commented; requested_reviewers_commented=$(pr_requested_reviewers_commented "$requested_reviewers")
+  local requested_reviewers_approved; requested_reviewers_approved=$(pr_requested_reviewers_approved "$requested_reviewers")
+
+  if [[ -n $requested_reviewers_pending ]]; then
+    echo "--------------------------------------------------------------------------------"
+    echo -e "Waiting for review 🔄\n"
+    for reviewer in $requested_reviewers_pending; do
+      echo "$reviewer"
+    done
+  fi
+
+  if [[ -n $requested_reviewers_commented ]]; then
+    echo "--------------------------------------------------------------------------------"
+    echo -e "Reviews Commented 🗨\n"
+    for reviewer in $requested_reviewers_commented; do
+      echo "$reviewer"
+    done
+  fi
+
+  if [[ -n $requested_reviewers_approved ]]; then
+    echo "--------------------------------------------------------------------------------"
+    echo -e "Reviews Approved ✅\n"
+    for reviewer in $requested_reviewers_approved; do
+      echo "$reviewer"
+    done
+  fi
 }
 
 pr_description() {
