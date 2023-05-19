@@ -29,7 +29,7 @@ git_commits() {
 }
 
 markdown_list() {
-    local content=$1
+    local content; content=$(echo "$1" | grep -v "Merge")
 
     local prefix="* ${MD_BOLD}"
     local suffix="${MD_BOLD}${MD_BR}"
@@ -84,11 +84,18 @@ pr_shortcut_card() {
 }
 
 pr_card_url() {
-  local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
   local source_branch; source_branch=$(git_current_branch)
   local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
 
-  return "$card_url"
+  echo "$card_url"
+}
+
+pr_api_card_url() {
+  local source_branch; source_branch=$(git_current_branch)
+  local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
+  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g' | sed 's/repos\.com/repos/g')
+
+  echo "$api_card_url"
 }
 
 pr_shortcut_card_link() {
@@ -107,9 +114,7 @@ pr_format_description() {
 
 pr_requested_reviewers_pending() {
   local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
-  local source_branch; source_branch=$(git_current_branch)
-  local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
-  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g' | sed 's/repos\.com/repos/g')
+  local api_card_url; api_card_url=$(pr_api_card_url)
 
   local requested_reviewers; requested_reviewers=$(curl -s -L \
     -H "Accept: application/vnd.github+json" \
@@ -127,9 +132,7 @@ pr_requested_reviewers_pending() {
 
 pr_requested_reviewers() {
   local auth_token; auth_token=$(echo -n "${GITHUB_TOKEN}")
-  local source_branch; source_branch=$(git_current_branch)
-  local card_url; card_url=$(pr_shortcut_card | jq -r ".branches[] | select(.name == \"$source_branch\") | .pull_requests[].url as \$url | \$url")
-  local api_card_url; api_card_url=$(echo "$card_url" | sed 's/github/api.github.com\/repos/g;s/pull/pulls/g' | sed 's/repos\.com/repos/g')
+  local api_card_url; api_card_url=$(pr_api_card_url)
 
   local reviews; reviews=$(curl -s -L \
     -H "Accept: application/vnd.github+json" \
@@ -155,35 +158,45 @@ pr_requested_reviewers_approved() {
     echo "$reviews" | jq -r '.[] | select(.state == "APPROVED") | .user.login' | sort -u
 }
 
+print_reviewers() {
+  local reviewers=$1
+  for reviewer in $reviewers; do
+        echo "$reviewer"
+  done
+}
+
+pr_print_url() {
+  local url=$1
+  echo -e "\e[1;34m${url}\e[0m"
+}
+
 pr_status() {
+  local url; url=$(pr_card_url)
   local requested_reviewers; requested_reviewers=$(pr_requested_reviewers)
   local requested_reviewers_pending; requested_reviewers_pending=$(pr_requested_reviewers_pending)
   local requested_reviewers_commented; requested_reviewers_commented=$(pr_requested_reviewers_commented "$requested_reviewers")
   local requested_reviewers_approved; requested_reviewers_approved=$(pr_requested_reviewers_approved "$requested_reviewers")
 
   if [[ -n $requested_reviewers_pending ]]; then
+    pr_print_url "$url"
+#    echo "$url"
     echo "--------------------------------------------------------------------------------"
-    echo -e "Waiting for review 🔄\n"
-    for reviewer in $requested_reviewers_pending; do
-      echo "$reviewer"
-    done
+    echo -e "🔄 Waiting for review 🔄\n"
+    print_reviewers "$requested_reviewers_pending"
   fi
 
   if [[ -n $requested_reviewers_commented ]]; then
     echo "--------------------------------------------------------------------------------"
-    echo -e "Reviews Commented 🗨\n"
-    for reviewer in $requested_reviewers_commented; do
-      echo "$reviewer"
-    done
+    echo -e "🗨  Reviews Commented 🗨\n"
+    print_reviewers "$requested_reviewers_commented"
   fi
 
   if [[ -n $requested_reviewers_approved ]]; then
     echo "--------------------------------------------------------------------------------"
-    echo -e "Reviews Approved ✅\n"
-    for reviewer in $requested_reviewers_approved; do
-      echo "$reviewer"
-    done
+    echo -e "✅ Reviews Approved ✅\n"
+    print_reviewers "$requested_reviewers_approved"
   fi
+  echo "--------------------------------------------------------------------------------"
 }
 
 pr_description() {
