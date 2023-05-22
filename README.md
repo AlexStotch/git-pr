@@ -21,15 +21,14 @@ git mr -o|open
 `git mr -d|description`
 
 Get a PR description that you can copy/past and complete when you create the PR.
-![image](https://github.com/AlexStotch/git-pr/assets/32511699/52885ff3-d241-4c14-a8a2-b3a43eca70ad)
-![image](https://github.com/AlexStotch/git-pr/assets/32511699/7ab4a546-dddf-461a-bde4-406df31a75c5)
+![git pr description1](doc/description1.png)
+![git pr description2](doc/description2.png)
 
 ### Status
 `git mr -s|status`
 
 Get you PR status: PR's link, reviwers review status.
-![image](https://github.com/AlexStotch/git-pr/assets/32511699/d8fa4722-9b5f-41e1-befe-4d70607acf22)
-
+![git pr status](doc/status.png)
 ### Open 
 `git mr -o|open`
 
