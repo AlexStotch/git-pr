@@ -41,17 +41,10 @@ Dependencies
 https://stedolan.github.io/jq/ is required and needs to be in PATH.
 
 ### git-pr
-Add the git-pr directory to your PATH
-in one of your shell startup scripts:
-```
-PATH="${PATH}:/path/to/git-pr"
-```
-OR
-
 Define it as a Git alias:
 run:
 ```
-git config --global alias.pr '!bash /path/to/git-mr/git-pr'
+git config --global alias.pr '!bash /path/to/git-mr/git-pr.sh'
 ```
 or edit your ~/.gitconfig directly:
 ```
