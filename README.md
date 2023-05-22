@@ -66,3 +66,10 @@ Set this token in your git config:
 ```
 git config --global pr.shortcut-token "abcdefghijklmnopqrstuvwx"
 ```
+
+### Github configuration 
+To get a Github API Token: https://github.com/settings/tokens
+Set this token in your git config:
+```
+git config --global pr.github-token "abcdefghijklmnopqrstuvwx"
+```
