@@ -28,6 +28,12 @@ git_commits() {
     git log --oneline --reverse --no-decorate "${target_branch}..${source_branch}"
 }
 
+git_auth() {
+  echo "$GITHUB_TOKEN" | tee token.txt
+  gh auth login --with-token "$GITHUB_TOKEN"
+  rm token.txt
+}
+
 markdown_list() {
     local content; content=$(echo "$1" | grep -v "Merge")
 
@@ -72,15 +78,17 @@ pr_shortcut_card() {
     local source_branch; source_branch=$(git_current_branch)
     local id; id=$(echo "$source_branch" | grep -E -o "[0-9]+")
 
-    local l_story; l_story=$(curl -X GET \
-      -H "Content-Type: application/json" \
-      -H "Shortcut-Token: $auth_token" \
-      -d '{ "page_size": 1, "query": "id:'"$id"'" }' \
-      -L "https://api.app.shortcut.com/api/v3/search/stories" \
-        2>/dev/null \
-      | jq -c .data[0])
+    if [[ -n "$id" ]]; then
+      local l_story; l_story=$(curl -X GET \
+            -H "Content-Type: application/json" \
+            -H "Shortcut-Token: $auth_token" \
+            -d '{ "page_size": 1, "query": "id:'"$id"'" }' \
+            -L "https://api.app.shortcut.com/api/v3/search/stories" \
+              2>/dev/null \
+            | jq -c .data[0])
 
-      echo "$l_story"
+            echo "$l_story"
+    fi
 }
 
 pr_card_url() {
@@ -177,9 +185,8 @@ pr_status() {
   local requested_reviewers_commented; requested_reviewers_commented=$(pr_requested_reviewers_commented "$requested_reviewers")
   local requested_reviewers_approved; requested_reviewers_approved=$(pr_requested_reviewers_approved "$requested_reviewers")
 
+  pr_print_url "$url"
   if [[ -n $requested_reviewers_pending ]]; then
-    pr_print_url "$url"
-#    echo "$url"
     echo "--------------------------------------------------------------------------------"
     echo -e "🔄 Waiting for review 🔄\n"
     print_reviewers "$requested_reviewers_pending"
@@ -213,7 +220,25 @@ EOF
 }
 
 pr_open() {
-xdg-open "$(pr_card_url)"
+local pr_card_url; pr_card_url=$(pr_card_url)
+if [[ -n $pr_card_url ]]; then
+  xdg-open "$pr_card_url"
+else
+  echo "No PR linked created. The PR should be linked to a Shortcut card"
+fi
+}
+
+pr_create() {
+  git_auth
+  local source_branch=${1:-$(git_current_branch)}
+  local target_branch; target_branch=$(git_base_branch)
+  local description; description=$(pr_format_description "$source_branch")
+  gh pr create --base "$target_branch" --head "$source_branch" --title "$source_branch" --body "$description"
+
+  local pr_card_url; pr_card_url=$(pr_card_url)
+  if [[ -n $pr_card_url ]]; then
+    xdg-open "$pr_card_url"
+  fi
 }
 
 # Variables
@@ -232,4 +257,5 @@ case $1 in
     -d|description) pr_description "${@:2}";;
     -o|open) pr_open "${@:2}";;
     -s|status) pr_status "${@:2}";;
+    -c|create) pr_create "${@:2}";;
 esac
