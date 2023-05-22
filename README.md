@@ -6,17 +6,25 @@ Prepares a merge request description, with a link to Shortcut card and current b
 1. [Commands](#commands)
    - [Description](#description)  
    - [Status](#status)  
-   - [Open](#open)  	
+   - [Open](#open)
+   - [Create](#create)  	
 3. [Installation](#installation)
 
 
 ## Commands
 
 ```
+git mr -c|create
 git mr -d|description
 git mr -s|status
 git mr -o|open
 ```
+
+### Create 
+`git mr -c|create`
+
+Open a PR for you and add a [Description](#description) to you PR automaticly 
+
 ### Description
 `git mr -d|description`
 
@@ -39,6 +47,7 @@ Open your GitHub PR in your browser
 Dependencies
 `bash`, `git` and usual command-line utilities: `grep`, `sed`, `curl`, `head`, `tail`, `tr`.
 https://stedolan.github.io/jq/ is required and needs to be in PATH.
+https://cli.github.com/ is required  
 
 ### git-pr
 Define it as a Git alias:
