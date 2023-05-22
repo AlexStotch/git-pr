@@ -1,8 +1,8 @@
 # git-pr
 
-Prepares a merge request description, with link to Shortcut card and current branch commit list.
+Prepares a merge request description, with a link to Shortcut card and current branch commits list.
 
-**Table des contents** 
+**Table of contents** 
 1. [Commands](#commands)
    - [Description](#description)  
    - [Status](#status)  
