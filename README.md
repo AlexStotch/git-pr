@@ -31,8 +31,8 @@ Open a PR for you and add a [Description](#description) to you PR automaticly
 `git mr -d|description`
 
 Get a PR description that you can copy/past and complete when you create the PR.
-![git pr description1](doc/description1.png)
-![git pr description2](doc/description2.png)
+![git pr description1](doc/description-cli.png)
+![git pr description2](doc/description-github.png)
 
 ### Status
 `git mr -s|status`
