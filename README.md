@@ -2,6 +2,8 @@
 
 Prepares a merge request description, with a link to Shortcut card and current branch commits list.
 
+![git pr description1](doc/git-pr.gif)
+
 **Table of contents** 
 1. [Commands](#commands)
    - [Description](#description)  
